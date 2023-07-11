@@ -1,0 +1,122 @@
+﻿@using Newtonsoft.Json;
+@using form_testor_blazor_server.Data.Models;
+@using form_testor_blazor_server.Data;
+
+
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+<div class="sidebar">
+    <!-- Sidebar content goes here -->
+    <div class="content"
+         style="margin-left: 0.5rem; overflow: auto; height: 92vh; padding: 20px;">
+        @if(settingsOpened == false)
+        {
+            <p class="display-4" style="font-size: 2rem;">Projects (@userProjects.Count)</p>
+            @foreach (UserProjectModel userProject in userProjects)
+            {
+                <button type="button" class="btn btn-light mt-2" style="width: 5.5rem; margin-left: 10px"
+                @onclick="() => {openedProject = userProject; settingsOpened = true;}">
+                    Settings
+                </button>
+            }
+
+            <div class="row pt-4">
+                <button type="button" class="btn btn-dark" 
+                style="width: 7rem; margin-left: 10px"
+                @onclick="AddNewProject"
+                >Create new</button>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="@openedProject"
+                OnValidSubmit="@SaveUpdatedProjectValues" OnInvalidSubmit="@NotValid">
+                <DataAnnotationsValidator />
+                @*<ValidationSummary />*@
+                 <div class="form-group" style="width: 18rem;">
+                    <button class="btn btn-secondary mt-2" @onclick="GoBack">Back</button>
+
+                    <div class="mt-2">
+                        <label for="project-name" style="font-weight: bold;">Project:</label>
+                        <InputText id="project-name" class="form-control"
+                        @bind-Value="@openedProject.Name" />
+                        <ValidationMessage For="@(() => openedProject.Name)" />
+                    </div>
+                    <small style="color: grey; font-family: Arial; display: block;">Created: @openedProject.CreatedDate</small>
+
+                    <div class="mt-2">
+                        <label for="project-description" style="font-weight: bold;">Project description:</label>
+                        <InputTextArea id="project-description" class="form-control"
+                        @bind-Value="@openedProject.Description" style="resize: none" />
+                        <ValidationMessage For="@(() => openedProject.Description)" />
+                    </div>
+
+                    @if (openedProject.UpdatedDate != null)
+                    {
+                        <small style="color: grey; font-family: Arial; display: block;">Updated: @openedProject.UpdatedDate</small>
+                    }
+                    
+                    <button type="submit" class="btn btn-dark mt-2">Save</button>
+                </div>
+
+            </EditForm>
+        }
+
+    </div>
+</div>
+@code {
+    public List<UserProjectModel> userProjects = new List<UserProjectModel>();
+
+    public bool settingsOpened;
+    public UserProjectModel openedProject = new UserProjectModel();
+
+    protected override void OnInitialized()
+    {
+        //GetAllProjectsOfUser();
+    }
+
+    public async Task<string> GetEmail()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var email = user.FindFirst(c => c.Type == ClaimTypes.Email)?.Value;
+        return email;
+    }
+
+
+    public void GoBack()
+    {
+        settingsOpened = false;
+    }
+
+    public async void AddNewProject()
+    {
+        var email = await GetEmail();
+
+        var _userProject = new UserProjectModel
+            {
+                Name = "Project: " + userProjects.Count + 1,
+                Description = "Project description can be added here.",
+                CreatedDate = DateTime.Now,
+                CreatedByEmail = email ?? "no email for now",
+                GUiD = Guid.NewGuid().ToString(),
+                URLiD = Guid.NewGuid().ToString()
+        };
+
+        userProjects.Add(_userProject);
+        StateHasChanged();
+    }
+    public async void SaveUpdatedProjectValues()
+    {
+        Console.WriteLine("Valid OK ...........");
+    } 
+
+    public void NotValid()
+    {
+        Console.WriteLine("Not valid ...........");
+        return;
+    }
+
+}
